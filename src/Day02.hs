@@ -22,6 +22,7 @@ toCubes :: String -> Cubes
 toCubes xs | "red" == cube = Red count
            | "green" == cube = Green count
            | "blue" == cube = Blue count
+           | otherwise = error "Incorrect token"
         where count = read . head $ splitted
               cube = last splitted
               splitted = splitOn " " xs
@@ -41,14 +42,24 @@ parseGame line = Game gameId cubes
             gameId = read $ last . splitOn " " $ head headerAndContents
             cubes = toCubesSubset . (toCubes <$>) . splitOn ", " <$> (map tail <$> splitOneOf  ";" $ last headerAndContents)
 
+minimumPossibleSubset :: Game -> Subset
+minimumPossibleSubset (Game _ xs) = foldr maximumSubset (Red 0, Green 0, Blue 0) xs
+      where maximumSubset (r,g,b) (r',g',b') = (max r r', max g g', max b b')
+
+subsetPower :: Subset -> Int
+subsetPower (Red x, Green y, Blue z) = x * y * z
+subsetPower _ = error "Incorrect subset"
 
 day02 :: IO ()
 day02 = do
   inputLines <- lines <$> (getDataFileName "day02-input.txt" >>= readFile)
   putStrLn "This is what I read from input:"
   putStrLn $ unlines inputLines
-  let res = sumGameIds . filter isPossible $ parseGame <$> inputLines
-  print res
+  let game = parseGame <$> inputLines
+  let res = sumGameIds . filter isPossible $ game 
+  let res2 = sum $ subsetPower . minimumPossibleSubset <$> game 
+  print $ "Part 1: " ++ show res
+  print $ "Part 2: "  ++ show res2
 
 instance Semigroup Cubes where
   Red x <> Red y = Red $ x + y
